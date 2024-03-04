@@ -1,0 +1,11 @@
+kind: workflow
+metadata:
+  name: predict_one
+  annotations:
+    group: cryptocast
+spec:
+  stages:
+    - name: predict_pipeline
+      target: flowdapt_cryptocast_plugin.stages.predict_pipeline
+      resources:
+        cpus: 1

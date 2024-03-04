@@ -25,7 +25,7 @@ async def run_flowdapt_workflow(
 
 def main():
     payload = {"asset": "ETH-USDT"}
-    response = asyncio.run(run_flowdapt_workflow("predict", payload))
+    response = asyncio.run(run_flowdapt_workflow("predict_one", payload))
     print(response)
 
 
