@@ -1,0 +1,41 @@
+kind: workflow
+metadata:
+  name: create_features
+  annotations:
+    group: cryptocast
+spec:
+  stages:
+    - name: create_asset_lists
+      target: flowdapt_cryptocast_plugin.stages.create_asset_lists
+      resources:
+        cpus: 0.25
+
+    - name: get_unique_assets
+      target: flowdapt_cryptocast_plugin.stages.get_unique_assets
+      depends_on:
+        - create_asset_lists
+      resources:
+        cpus: 0.25
+
+    - name: get_and_publish_data
+      target: flowdapt_cryptocast_plugin.stages.get_and_publish_data
+      type: parameterized
+      depends_on:
+        - get_unique_assets
+      resources:
+        cpus: 1
+
+    - name: get_asset_list
+      target: flowdapt_cryptocast_plugin.stages.get_asset_list
+      depends_on:
+        - get_and_publish_data
+      resources:
+        cpus: 0.25
+
+    - name: construct_dataframes
+      target: flowdapt_cryptocast_plugin.stages.construct_dataframes
+      type: parameterized
+      depends_on:
+        - get_asset_list
+      resources:
+        cpus: 1

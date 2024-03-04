@@ -1,0 +1,3 @@
+include flowdapt_cryptocast_plugin/workflows/*
+include flowdapt_cryptocast_plugin/triggers/*
+include flowdapt_cryptocast_plugin/data/*

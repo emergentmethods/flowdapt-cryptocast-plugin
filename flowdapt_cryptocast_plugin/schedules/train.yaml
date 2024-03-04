@@ -1,0 +1,11 @@
+kind: trigger_rule
+metadata:
+  name: train
+spec:
+  type: schedule
+  rule:
+    - "*/15 * * * *"
+  action:
+    target: run_workflow
+    parameters:
+      workflow: train

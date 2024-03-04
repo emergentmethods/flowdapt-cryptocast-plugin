@@ -1,0 +1,44 @@
+kind: config
+metadata:
+  name: main
+  annotations:
+    group: cryptocast
+spec:
+  selector:
+    type: annotation
+    value:
+      group: cryptocast
+  data:
+    study_identifier: test-1
+    lookback: 6
+    model_train_parameters:
+      # xgboost parameters
+      n_jobs: 4
+      n_estimators: 100
+      # tree_method: "gpu_hist"
+      alpha: 0.5
+      min_child_weight: 5
+      learning_rate: 0.1
+      eval_metric: "rmse"
+      max_depth: 6
+      verbosity: 1
+      # # neural net parameters
+      # epochs: 2  # 35
+      # batch_size: 8  # 64
+      # lookback: 6
+      # hidden_dim: 2048
+      # shuffle: True
+
+    weight_factor: 0.9
+    model_str: "flowml.XGBoostRegressor" # "flowml.PyTorchTransformer"
+    num_points: 500
+    data_split_parameters:
+      test_size: 0.5
+      shuffle: true
+
+    data_config:
+      whitelist: ["ETH-USDT", "ADA-USDT", "SOL-USDT"]
+      include_corr_pairlist: ["BTC-USDT"]
+      prediction_points: 5
+      origins: "okx"
+      frequencies: "5m"

@@ -1,0 +1,17 @@
+kind: workflow
+metadata:
+  name: predict
+  annotations:
+    group: cryptocast
+spec:
+  stages:
+    - name: get_asset_list
+      target: flowdapt_cryptocast_plugin.stages.get_asset_list
+
+    - name: train_pipeline
+      target: flowdapt_cryptocast_plugin.stages.predict_pipeline
+      type: parameterized
+      depends_on:
+        - get_asset_list
+      resources:
+        cpus: 1

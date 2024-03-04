@@ -1,0 +1,20 @@
+kind: trigger_rule
+metadata:
+  name: trigger_predict
+spec:
+  type: condition
+  rule:
+    and:
+      - eq:
+        - var: type
+        - com.event.workflow.workflow_finished
+      - eq:
+        - var: data.workflow
+        - train
+      - eq:
+        - var: data.state
+        - finished
+  action:
+    target: run_workflow
+    parameters:
+      workflow: predict

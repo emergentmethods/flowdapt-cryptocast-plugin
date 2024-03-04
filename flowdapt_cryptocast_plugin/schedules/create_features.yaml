@@ -1,0 +1,11 @@
+kind: trigger_rule
+metadata:
+  name: create_features
+spec:
+  type: schedule
+  rule:
+    - "*/5 * * * *"
+  action:
+    target: run_workflow
+    parameters:
+      workflow: create_features

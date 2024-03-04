@@ -1,0 +1,119 @@
+image: python:3.11
+
+# Define the stages for the pipeline
+stages:
+  - test
+  - build
+  - publish
+
+# # Pipeline rules
+workflow:
+  rules:
+      # If a push to branch with open merge request then ignore
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: never
+      # If source is push and no open merge request then run
+    - if: $CI_COMMIT_BRANCH
+
+# Change pip's cache directory to be inside the project directory since we can
+# only cache local items.
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  GROUP_ID: 70 # Group ID for Flowdapt
+
+# Pip's cache doesn't store the python packages
+# https://pip.pypa.io/en/stable/topics/caching/
+#
+# Default cache values
+default:
+  cache: &global_cache
+    key: $CI_COMMIT_REF_SLUG
+    paths:
+      - .cache/pypoetry
+      - .cache/pip
+      - .venv/
+    policy: pull-push
+
+
+# Anchor to use pull only cache
+.use_cached_venv: &use_cached_venv
+  before_script:
+    - source .venv/bin/activate
+  cache:
+    <<: *global_cache
+    policy: pull
+
+
+# Setup job to install dependencies
+build-env:
+  stage: .pre
+  script:
+    - python -m venv .venv/
+    - source .venv/bin/activate
+    - pip install -U pip
+    - pip install poetry
+    - poetry --version
+    - poetry config http-basic.gitlab "gitlab-ci-token" "$CI_JOB_TOKEN"
+    - poetry install
+  rules:
+      # If project dependencies were changed then run
+    - changes:
+      - pyproject.toml
+      - flowdapt_ccxt_plugin/
+      when: always
+      # If .venv exists then skip
+    - exists:       
+      - .venv/
+      when: never
+    # Default to manual, but continue
+    # pipeline if not run
+    - when: manual
+      allow_failure: true
+
+
+test:
+  <<: *use_cached_venv
+  stage: test
+  script:
+    - pytest
+
+# Build stage
+build:
+  <<: *use_cached_venv
+  stage: build
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - when: never
+  script:
+    - poetry build --format wheel
+  artifacts:
+    name: dist
+    paths:
+      - dist/
+
+
+# Publish stage
+publish:
+  <<: *use_cached_venv
+  stage: publish
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - when: never
+      # Only run on master branch
+  variables:
+    PACKAGE_NAME: flowdapt-ccxt-plugin
+  script: |
+      # Until we start doing real releases, we must first delete the existing package and reupload
+      # since our version number has not changed. Otherwise it will fail.
+      export PACKAGE_LIST=$(curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages")
+      export DELETE_PATH=$(echo $PACKAGE_LIST | python -c "import json, sys; packages = json.load(sys.stdin); package = max((p for p in packages if p[\"name\"] == \"${PACKAGE_NAME}\"  and p[\"package_type\"] == \"pypi\"), default=None, key=lambda p: p[\"created_at\"]); print(package[\"_links\"][\"delete_api_path\"] if package else \"\")")
+      if [ ! -z "$DELETE_PATH" ]; then
+        curl --request DELETE --header "JOB-TOKEN: ${CI_JOB_TOKEN}" "$DELETE_PATH"
+      else
+        echo "No packages found matching ${PACKAGE_NAME}"
+      fi
+
+      # Publish the built wheel to the registry
+      poetry config repositories.gitlab "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi"
+      poetry config http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
+      poetry publish --repository gitlab
